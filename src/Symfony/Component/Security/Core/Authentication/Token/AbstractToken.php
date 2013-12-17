@@ -142,7 +142,8 @@ abstract class AbstractToken implements TokenInterface
      */
     public function serialize()
     {
-        return serialize(array($this->user, $this->authenticated, $this->roles, $this->attributes));
+//        return serialize(array(serialize($this->user), $this->authenticated, $this->roles, $this->attributes));
+        return serialize(array(clone($this->user), $this->authenticated, $this->roles, $this->attributes));
     }
 
     /**

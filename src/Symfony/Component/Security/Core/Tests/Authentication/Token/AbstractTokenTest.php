@@ -11,7 +11,23 @@
 
 namespace Symfony\Component\Security\Core\Tests\Authentication\Token;
 
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\Role\Role;
+use Symfony\Component\Security\Core\Role\SwitchUserRole;
+
+class Wrap implements \Serializable
+{
+    public function serialize()
+    {
+        var_dump(\unserialize(\serialize($this->token)));die;
+        return \serialize(unserialize(\serialize($this->token)));
+    }
+
+    public function unserialize($serialize)
+    {
+        $this->token = unserialize($serialize);
+    }
+}
 
 class TestUser
 {
@@ -69,6 +85,42 @@ class AbstractTokenTest extends \PHPUnit_Framework_TestCase
 
         $this->assertEquals($token->getRoles(), $uToken->getRoles());
         $this->assertEquals($token->getAttributes(), $uToken->getAttributes());
+    }
+
+    public function testSerializeRecursive()
+    {
+        $user = new TestUser('david');
+        $originalToken = new UsernamePasswordToken($user, 'credentials_previousz', 'secured_area', array('ROL1'));
+
+        $ser = \serialize(\serialize($originalToken));
+        $this->assertEquals(\unserialize(\unserialize($ser)), $originalToken);
+
+//        $wrap = new Wrap();
+//        $wrap->token = $originalToken;
+
+
+//        $uToken = \unserialize(\serialize(array($wrap)));
+//        var_dump($uToken);die;
+
+//        succeeds
+//        $serialized = \unserialize(\serialize($originalToken));
+//        $this->assertInstanceOf('Symfony\Component\Security\Core\Tests\Authentication\Token\TestUser', $serialized->getUser());
+
+        $roles = array(new SwitchUserRole('ROLE_PREVIOUS_ROLE', $originalToken));
+
+        $token = new UsernamePasswordToken($user, 'credentials', 'secured_area2', $roles);
+        $serialized = \serialize($token);
+        
+        $token2 = \unserialize($serialized);
+
+        print_r($token);
+        print_r($token2);
+
+        $user1 = \reset($token->getRoles())->getSource()->getUser();
+        $this->assertInstanceOf('Symfony\Component\Security\Core\Tests\Authentication\Token\TestUser', $user1);
+
+        $user2 = \reset($token2->getRoles())->getSource()->getUser();
+        $this->assertInstanceOf('Symfony\Component\Security\Core\Tests\Authentication\Token\TestUser', $user2);
     }
 
     /**
@@ -242,3 +294,4 @@ class AbstractTokenTest extends \PHPUnit_Framework_TestCase
         return $this->getMockForAbstractClass('Symfony\Component\Security\Core\Authentication\Token\AbstractToken', array($roles));
     }
 }
+
